@@ -5,8 +5,6 @@ from cython_gsl cimport *
 import numpy as np
 cimport numpy as np
 
-from libc.math cimport log, exp
-
 @cython.boundscheck(False)
 @cython.wraparound(False)   
 def sampler(np.ndarray[np.float64_t, ndim=2] counts,
