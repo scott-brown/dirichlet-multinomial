@@ -109,18 +109,18 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
             double beta = 100.):
     cdef:
         Py_ssize_t i
-        size_t K = counts.shape[1]
+        int N = counts.shape[0]
+        int K = counts.shape[1]
         np.ndarray[double, ndim=2] trace = np.empty((repl, K), dtype=np.float64)
         np.ndarray[double, ndim=1] prop = np.empty(K, dtype=np.float64)
         np.ndarray[double, ndim=1] proposal_alpha = np.empty(K, dtype=np.float64)
         np.ndarray[double, ndim=1] x_t = np.array([1./K]*K, dtype=np.float64)
         double accept = 0.0
         double ratio
-        int n = counts.shape[0]
         gsl_rng *r = gsl_rng_alloc(gsl_rng_mt19937)
         gsl_rng *u = gsl_rng_alloc(gsl_rng_mt19937)
         
-    if n == 0:
+    if N == 0:
         for i in range(repl):
             gsl_ran_dirichlet(r,K,&prior_alpha[0],&prop[0])
             trace[i,:] = prop
