@@ -6,6 +6,9 @@ import numpy as np
 cimport numpy as np
 
 from libc.math cimport log, exp
+
+cdef gsl_rng *r = gsl_rng_alloc(gsl_rng_mt19937)
+cdef gsl_rng *u = gsl_rng_alloc(gsl_rng_mt19937)
      
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -117,8 +120,6 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
         np.ndarray[double, ndim=1] x_t = np.array([1./K]*K, dtype=np.float64)
         double accept = 0.0
         double ratio
-        gsl_rng *r = gsl_rng_alloc(gsl_rng_mt19937)
-        gsl_rng *u = gsl_rng_alloc(gsl_rng_mt19937)
         
     if N == 0:
         for i in range(repl):
