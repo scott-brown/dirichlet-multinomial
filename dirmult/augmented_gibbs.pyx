@@ -22,7 +22,6 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
         np.ndarray[double, ndim=1] p = np.array([1./K]*K, dtype=np.float64)
         np.ndarray[double, ndim=1] p_
         np.ndarray[double, ndim=1] posterior_alpha = np.empty(K, dtype=np.float64)
-        np.ndarray[double, ndim=1] posterior_sample = np.empty(K, dtype=np.float64)
         np.ndarray[double, ndim=2] trace = np.empty((repl, K), dtype=np.float64)
         int augmented_count = 0
         int N_nan = I_missing.shape[0]
@@ -65,7 +64,7 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
                 else:
                     counts[<Py_ssize_t>I_missing[i],<Py_ssize_t>k] = <double>n[j]
         posterior_alpha = counts.sum(0) + prior_alpha
-        gsl_ran_dirichlet(r,K,&posterior_alpha[0],&posterior_sample[0])
-        trace[ii-burn,:] = posterior_sample
+        gsl_ran_dirichlet(r,K,&posterior_alpha[0],&p[0])
+        trace[ii-burn,:] = p
     
     return trace
