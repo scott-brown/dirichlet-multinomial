@@ -15,7 +15,7 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
             int repl = 10000,
             int burn = 50):
     """
-    Executes a Markov Chain Monte Carlo simulation to estimate the distributions
+    Executes a Markov Chain Monte Carlo simulation to estimate the distribution
     of class probabilities by using an augmented variable Gibbs sampling scheme.
     Censored count data is sampled in a two step process. First, the total augmented count
     for each data sample is drawn from a sum of geomteric distributions. Next, individual

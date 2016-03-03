@@ -111,7 +111,7 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
             int burn = 50,
             double beta = 100.):
     """
-    Executes a Markov Chain Monte Carlo simulation to estimate the distributions
+    Executes a Markov Chain Monte Carlo simulation to estimate the distribution
     of class probabilities by using the Metropolis Hastings algorithm. New samples
     are proposed from a dirichlet distribution.
         - counts is a 2-dim array of count values, including NaNs
