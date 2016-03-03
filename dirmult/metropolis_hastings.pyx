@@ -21,7 +21,7 @@ cpdef log_posterior(np.ndarray[np.float64_t, ndim=1] probability,
     In this case, the posterior model follows from a
     censored multinomial likelihood and dirichlet prior.
         - probability is a 1-dim vector of probabilities
-        - alpha is a 1-dim vector of parameters for the dirichlet prior
+        - alpha is a 1-dim vector of concentration parameters from the dirichlet prior
         - counts is a 2-dim array of count values, including NaNs
     """
     cdef:
@@ -68,7 +68,7 @@ cpdef log_p_ratio(np.ndarray[np.float64_t, ndim=1] prop,
     the acceptance ratio for the Metropolis-Hastings sampler.
         - prop is a 1-dim vector of probabilities for the proposed sample
         - x_t is a 1-dim vector of probabilities for the previous sample
-        - alpha ia a 1-dim vector of dirichlet prior parameters
+        - alpha is a 1-dim vector of concentration parameters from the dirichlet prior
         - counts is a 2-dim array of count values, including NaNs
     """
     return log_posterior(prop,alpha,counts) - log_posterior(x_t,alpha,counts)
@@ -110,6 +110,17 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
             int repl = 10000,
             int burn = 50,
             double beta = 100.):
+    """
+    Executes a Markov Chain Monte Carlo simulation to estimate the distributions
+    of class probabilities by using the Metropolis Hastings algorithm. New samples
+    are proposed from a dirichlet distribution.
+        - counts is a 2-dim array of count values, including NaNs
+        - prior_alpha is a 1-dim vector of concentration parameters from the dirichlet prior
+        - repl is an integer of the desired number of mcmc samples
+        - burn is an integer representing the number of samples in the burn-in phase
+        - beta is a float parameter that controls the dispersion of the proposal distribution:
+            larger beta values correspond to greater dispersion of proposals
+    """
     cdef:
         Py_ssize_t i
         int N = counts.shape[0]
@@ -137,4 +148,4 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
                     accept += 1.0
             if i >= burn:
                 trace[i-burn,:] = x_t
-    return {'trace':trace,'rate':accept/repl}
+    return {'trace':trace,'acceptance_rate':accept/repl}

@@ -14,6 +14,18 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
             np.ndarray[np.float64_t, ndim=1] prior_alpha,
             int repl = 10000,
             int burn = 50):
+    """
+    Executes a Markov Chain Monte Carlo simulation to estimate the distributions
+    of class probabilities by using an augmented variable Gibbs sampling scheme.
+    Censored count data is sampled in a two step process. First, the total augmented count
+    for each data sample is drawn from a sum of geomteric distributions. Next, individual
+    augmented counts are drawn from a multinomial distribution, conditioned on both the total
+    augmented count and the current mcmc sample of probabilities.
+        - counts is a 2-dim array of count values, including NaNs
+        - prior_alpha is a 1-dim vector of concentration parameters from the dirichlet prior
+        - repl is an integer of the desired number of mcmc samples
+        - burn is an integer representing the number of samples in the burn-in phase
+    """                                
     cdef:
         Py_ssize_t i,j,x,y,ii
         int N = counts.shape[0]
@@ -22,13 +34,13 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
         int N_nan = I_missing.shape[0]
         np.ndarray[double, ndim=2] J_missing = np.empty((N_nan,K),dtype=np.float64)
         np.ndarray[int, ndim=1] row_counts_missing = np.nansum(counts,1)[I_missing].astype(np.int32)
-        np.ndarray[unsigned int, ndim=1] n = np.zeros(K, dtype=np.uint32)
+        np.ndarray[unsigned int, ndim=1] individual_augmented_counts = np.zeros(K, dtype=np.uint32)
         np.ndarray[double, ndim=1] p = np.array([1./K]*K, dtype=np.float64)
         np.ndarray[double, ndim=1] p_ = np.zeros(K, dtype=np.float64)
         np.ndarray[double, ndim=1] posterior_alpha = np.empty(K, dtype=np.float64)
         np.ndarray[double, ndim=2] trace = np.empty((repl, K), dtype=np.float64)
         np.ndarray[double, ndim=2] counts_cpy = counts.copy()
-        int augmented_count = 0        
+        int total_augmented_count = 0        
         double sum_p
         double k
         
@@ -56,17 +68,17 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
                     p_[x] = p[<Py_ssize_t>k]
                     x += 1
                     
-            augmented_count = -row_counts_missing[i]
+            total_augmented_count = -row_counts_missing[i]
             for k in xrange(row_counts_missing[i]):
-                augmented_count += gsl_ran_geometric(r,sum_p)
+                total_augmented_count += gsl_ran_geometric(r,sum_p)
 
-            gsl_ran_multinomial(r,x,<unsigned int>augmented_count,&p_[0],&n[0])
+            gsl_ran_multinomial(r,x,<unsigned int>total_augmented_count,&p_[0],&individual_augmented_counts[0])
             for j in xrange(K):
                 k = J_missing[i,j]
                 if gsl_isnan(k):
                     break
                 else:
-                    counts_cpy[<Py_ssize_t>I_missing[i],<Py_ssize_t>k] = n[j]
+                    counts_cpy[<Py_ssize_t>I_missing[i],<Py_ssize_t>k] = individual_augmented_counts[j]
                     
         posterior_alpha = counts_cpy.sum(0) + prior_alpha
         gsl_ran_dirichlet(r,K,&posterior_alpha[0],&p[0])
