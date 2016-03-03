@@ -8,7 +8,8 @@ cimport numpy as np
 cdef gsl_rng *r = gsl_rng_alloc(gsl_rng_mt19937)
 
 @cython.boundscheck(False)
-@cython.wraparound(False)   
+@cython.wraparound(False)
+@cython.cdivision(True)
 def sampler(np.ndarray[np.float64_t, ndim=2] counts,
             np.ndarray[np.float64_t, ndim=1] prior_alpha,
             int repl = 10000,
@@ -28,7 +29,7 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
         np.ndarray[double, ndim=2] trace = np.empty((repl, K), dtype=np.float64)
         np.ndarray[double, ndim=2] counts_cpy = counts.copy()
         int augmented_count = 0        
-        double sum_p = 0.0
+        double sum_p
         double k
         
     J_missing[:] = np.nan
