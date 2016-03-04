@@ -132,12 +132,14 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
         double accept = 0.0
         double ratio
         
+    # If there is no data, then sample from the prior
+    # else carry out metropolis-hastings mcmc
     if N == 0:
         for i in range(repl):
             gsl_ran_dirichlet(r,K,&prior_alpha[0],&prop[0])
             trace[i,:] = prop
         accept += repl
-    else:
+    else: 
         for i in range(repl+burn):
             proposal_alpha = x_t * beta
             gsl_ran_dirichlet(r,K,&proposal_alpha[0],&prop[0])
