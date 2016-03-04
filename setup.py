@@ -10,7 +10,7 @@ setup(
     author = "Scott Brown",
     author_email = "sbrown103@gmail.com",
     version = "1.0",
-    packages = ["dirmult"],
+    packages = ["dirmult","dirmult.tests"],
     include_dirs = [cython_gsl.get_include(), numpy.get_include()],
     cmdclass = {'build_ext': build_ext},
     ext_modules = [Extension("dirmult.metropolis_hastings",
