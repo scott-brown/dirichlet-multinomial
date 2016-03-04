@@ -27,62 +27,81 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
         - burn is an integer representing the number of samples in the burn-in phase
     """                                
     cdef:
-        Py_ssize_t i,j,x,y,ii
+        Py_ssize_t i,j,ii,jj,iii,cursor
         int N = counts.shape[0]
         int K = counts.shape[1]
-        np.ndarray[int, ndim=1] I_missing = np.arange(N)[np.isnan(counts).any(1)].astype(np.int32)
-        int N_nan = I_missing.shape[0]
-        np.ndarray[double, ndim=2] J_missing = np.empty((N_nan,K),dtype=np.float64)
-        np.ndarray[int, ndim=1] row_counts_missing = np.nansum(counts,1)[I_missing].astype(np.int32)
+        int total_augmented_count, N_missing
+        double sum_p
+        np.ndarray[int, ndim=1] row_idx_missing, row_counts_missing, col_counts
+        np.ndarray[double, ndim=2] col_idx_missing
         np.ndarray[unsigned int, ndim=1] individual_augmented_counts = np.zeros(K, dtype=np.uint32)
         np.ndarray[double, ndim=1] p = np.array([1./K]*K, dtype=np.float64)
         np.ndarray[double, ndim=1] p_ = np.zeros(K, dtype=np.float64)
         np.ndarray[double, ndim=1] posterior_alpha = np.empty(K, dtype=np.float64)
         np.ndarray[double, ndim=2] trace = np.empty((repl, K), dtype=np.float64)
-        np.ndarray[double, ndim=2] counts_cpy = counts.copy()
-        int total_augmented_count = 0        
-        double sum_p
-        double k
-        
-    J_missing[:] = np.nan
     
-    x = 0
-    for i in I_missing:
-        y = 0
+    row_idx_missing = np.arange(N)[np.isnan(counts).any(1)].astype(np.int32)
+    N_missing = row_idx_missing.shape[0]
+    
+    row_counts_missing = np.nansum(counts,1)[row_idx_missing].astype(np.int32)
+    col_counts = np.nansum(counts,0).astype(np.int32)    
+    
+    # initialize col_idx_missing with NaN and then iterate over rows
+    # filling each row from left to right with doubles that correspond
+    # to the column indices of missing count data - doubles must be 
+    # used in order to store NaN, the indices will be later converted
+    # to integers (or Py_ssize_t) to perform actual indexing
+    col_idx_missing = np.empty((N_missing,K),dtype=np.float64)
+    col_idx_missing[:] = np.nan
+        
+    ii = 0                 
+    for i in row_idx_missing:
+        jj = 0
         for j in xrange(K):
-            if gsl_isnan(counts_cpy[i,j]):
-                J_missing[x,y] = j
-                y += 1
-        x += 1
+            if gsl_isnan(counts[i,j]):
+                col_idx_missing[ii,jj] = j
+                jj += 1
+        ii += 1
         
-    for ii in xrange(repl+burn):
-        for i in xrange(N_nan):
+    ##### begin mcmc sampling #####
+    # the following iterator conventions are used:
+    # i,j are indices with respect to the original count data
+    # ii,jj are indices with respect to the subset of count data concerning
+    # censored/missing data - in other words, ii & jj are indices of indices
+    # iii represents the index of mcmc samples
+    # cursor indexes into p_ and is used as a flexible descriptor of the
+    # length of the set of missing column indices for a given row
+    for iii in xrange(repl+burn):
+        posterior_alpha = col_counts + prior_alpha
+        for ii in xrange(N_missing):
             sum_p = 1.0
-            x = 0
-            for j in xrange(K):
-                k = J_missing[i,j]
-                if gsl_isnan(k):
+            cursor = 0
+            for jj in xrange(K):
+                if gsl_isnan(col_idx_missing[ii,jj]):
                     break
                 else:
-                    sum_p -= p[<Py_ssize_t>k]
-                    p_[x] = p[<Py_ssize_t>k]
-                    x += 1
-                    
-            total_augmented_count = -row_counts_missing[i]
-            for k in xrange(row_counts_missing[i]):
+                    j = <Py_ssize_t>col_idx_missing[ii,jj]
+                    sum_p -= p[j]
+                    p_[cursor] = p[j]
+                    cursor += 1
+             
+            # sample augmented variables to "fill-in" censored data
+            total_augmented_count = -row_counts_missing[ii]
+            for _ in xrange(row_counts_missing[ii]):
                 total_augmented_count += gsl_ran_geometric(r,sum_p)
-
-            gsl_ran_multinomial(r,x,<unsigned int>total_augmented_count,&p_[0],&individual_augmented_counts[0])
-            for j in xrange(K):
-                k = J_missing[i,j]
-                if gsl_isnan(k):
+            gsl_ran_multinomial(r,cursor,<unsigned int>total_augmented_count,&p_[0],&individual_augmented_counts[0])
+            
+            # increment posterior alpha with the augmented counts
+            for jj in xrange(K):
+                if gsl_isnan(col_idx_missing[ii,jj]):
                     break
                 else:
-                    counts_cpy[<Py_ssize_t>I_missing[i],<Py_ssize_t>k] = individual_augmented_counts[j]
-                    
-        posterior_alpha = counts_cpy.sum(0) + prior_alpha
+                    j = <Py_ssize_t>col_idx_missing[ii,jj]
+                    posterior_alpha[j] += individual_augmented_counts[jj]
+         
+        # sample a new probability vector
         gsl_ran_dirichlet(r,K,&posterior_alpha[0],&p[0])
-        if ii >= burn:
-            trace[ii-burn,:] = p
-        
+        if iii >= burn:
+            trace[iii-burn,:] = p
+            
     return trace
