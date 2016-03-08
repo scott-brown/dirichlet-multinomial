@@ -15,12 +15,13 @@ data = np.array([[nan,7,9,nan],
 prior = np.array([5.,4.,7.,2.])
 mcmc_samples = 100000
 ```
-We can simulate the posterior using a Metropolis-Hastings MCMC sampler, but we must select a parameter, beta, that controls the dispersion of our proposals.
+We can simulate the posterior using a Metropolis-Hastings MCMC sampler, but we must select a parameter beta that controls the dispersion of our proposals.
 ```python
 mixing_beta = 35.
 chain1 = mh.sampler(data,prior,mcmc_samples,beta = mixing_beta)
 ```
-Or, we can use an MCMC sampler that utilizes augmented variables and a Gibbs sampling technique. We avoid having to mess wsith hyperparameters like beta above. 
+Or we can use a Gibbs sampling approach with augmented variables. We avoid having to choose hyperparameters and get great mixing by default. 
 ```python
 chain2 = ag.sampler(data,prior,mcmc_samples)
 ```
+Both approaches are implemented in Cython and cross-checked with pure Python implementations.
