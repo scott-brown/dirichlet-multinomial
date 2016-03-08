@@ -15,7 +15,7 @@ data = np.array([[nan,7,9,nan],
 prior = np.array([5.,4.,7.,2.])
 mcmc_samples = 100000
 ```
-We can simulate the posterior using a Metropolis-Hastings MCMC sampler, but we must select a parameter beta that controls the dispersion of our proposals.
+We can simulate the posterior using a Metropolis-Hastings MCMC sampler, but we must select a hyperparameter beta that controls the dispersion of the proposal distribution.
 ```python
 mixing_beta = 35.
 chain1 = mh.sampler(data,prior,mcmc_samples,beta=mixing_beta)
