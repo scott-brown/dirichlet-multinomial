@@ -18,7 +18,7 @@ mcmc_samples = 100000
 We can simulate the posterior using a Metropolis-Hastings MCMC sampler, but we must select a parameter beta that controls the dispersion of our proposals.
 ```python
 mixing_beta = 35.
-chain1 = mh.sampler(data,prior,mcmc_samples,beta = mixing_beta)
+chain1 = mh.sampler(data,prior,mcmc_samples,beta=mixing_beta)
 ```
 Or we can use a Gibbs sampling approach with augmented variables. We avoid having to choose hyperparameters and get great mixing by default. 
 ```python
