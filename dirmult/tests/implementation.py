@@ -55,18 +55,21 @@ class MetropolisHastingsTest(object):
     def cython_sampler(self):
         return mh.sampler(self.counts, self.alpha, self.repl, self.burn, self.beta)
 
-    def plots(self, numbins = 40):
+    def plots(self, true_alpha, numbins = 40):
         for i in xrange(self.K):
+            mean = true_alpha[i] / true_alpha.sum()
             bins = np.linspace(min(self.python_chain['trace'][:,i].min(),
                                    self.cython_chain['trace'][:,i].min()),
                                max(self.python_chain['trace'][:,i].max(),
                                    self.cython_chain['trace'][:,i].max()),numbins)
             plt.figure(figsize=(16,8))
-            plt.hist(self.python_chain['trace'][:,i],bins=bins,alpha=0.5,label='Python',normed=True)
-            plt.hist(self.cython_chain['trace'][:,i],bins=bins,alpha=0.5,label='Cython',normed=True)
+            q1,b,p = plt.hist(self.python_chain['trace'][:,i],bins=bins,alpha=0.5,label='Python',normed=True)
+            q2,b,p = plt.hist(self.cython_chain['trace'][:,i],bins=bins,alpha=0.5,label='Cython',normed=True)
+            plt.plot((mean,mean),(0,max(q1.max(),q2.max())),'r-',lw=10,label='True Mean')
+            plt.title("Probability Parameter, k="+str(i),fontsize=20)
             plt.legend(loc='upper right',fontsize=20)
-            plt.show()
-            
+            plt.show()           
+
 class AugmentedGibbsTest(object):  
     def __init__(self, counts, alpha, repl = 10000, burn = 50):
         """
@@ -105,15 +108,18 @@ class AugmentedGibbsTest(object):
     def cython_sampler(self):
         return ag.sampler(self.counts, self.alpha, self.repl, self.burn)
 
-    def plots(self, numbins = 40):
+    def plots(self, true_alpha, numbins = 40):
         for i in xrange(self.K):
+            mean = true_alpha[i] / true_alpha.sum()
             bins = np.linspace(min(self.python_chain[:,i].min(),
                                    self.cython_chain[:,i].min()),
                                max(self.python_chain[:,i].max(),
                                    self.cython_chain[:,i].max()),numbins)
             plt.figure(figsize=(16,8))
-            plt.hist(self.python_chain[:,i],bins=bins,alpha=0.5,label='Python',normed=True)
-            plt.hist(self.cython_chain[:,i],bins=bins,alpha=0.5,label='Cython',normed=True)
+            q1,b,p = plt.hist(self.python_chain[:,i],bins=bins,alpha=0.5,label='Python',normed=True)
+            q2,b,p = plt.hist(self.cython_chain[:,i],bins=bins,alpha=0.5,label='Cython',normed=True)
+            plt.plot((mean,mean),(0,max(q1.max(),q2.max())),'r-',lw=10,label='True Mean')
+            plt.title("Probability Parameter, k="+str(i),fontsize=20)
             plt.legend(loc='upper right',fontsize=20)
             plt.show()
             
@@ -142,14 +148,17 @@ class MethodCrosscheck(object):
     def ag_sampler(self):
         return ag.sampler(self.counts, self.alpha, self.repl, self.burn)
 
-    def plots(self, numbins = 40):
+    def plots(self, true_alpha, numbins = 40):
         for i in xrange(self.K):
+            mean = true_alpha[i] / true_alpha.sum()
             bins = np.linspace(min(self.mh_chain['trace'][:,i].min(),
                                    self.ag_chain[:,i].min()),
                                max(self.mh_chain['trace'][:,i].max(),
                                    self.ag_chain[:,i].max()),numbins)
             plt.figure(figsize=(16,8))
-            plt.hist(self.mh_chain['trace'][:,i],bins=bins,alpha=0.5,label='Metropolis-Hastings',normed=True)
-            plt.hist(self.ag_chain[:,i],bins=bins,alpha=0.5,label='Augmented Gibbs',normed=True)
+            q1,b,p = plt.hist(self.mh_chain['trace'][:,i],bins=bins,alpha=0.5,label='Metropolis-Hastings',normed=True)
+            q2,b,p = plt.hist(self.ag_chain[:,i],bins=bins,alpha=0.5,label='Augmented Gibbs',normed=True)
+            plt.plot((mean,mean),(0,max(q1.max(),q2.max())),'r-',lw=10,label='True Mean')
+            plt.title("Probability Parameter, k="+str(i),fontsize=20)
             plt.legend(loc='upper right',fontsize=20)
             plt.show()
