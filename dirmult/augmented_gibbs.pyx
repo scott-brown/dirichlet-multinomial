@@ -6,7 +6,7 @@ import numpy as np
 cimport numpy as np
 
 cdef gsl_rng *r = gsl_rng_alloc(gsl_rng_mt19937)
-
+    
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -18,7 +18,7 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
     Executes a Markov Chain Monte Carlo simulation to estimate the distribution
     of class probabilities by using an augmented variable Gibbs sampling scheme.
     Censored count data is sampled in a two step process. First, the total augmented count
-    for each data sample is drawn from a sum of geomteric distributions. Next, individual
+    for each data sample is drawn from a negative binomial distribution. Next, individual
     augmented counts are drawn from a multinomial distribution, conditioned on both the total
     augmented count and the current mcmc sample of probabilities.
         - counts is a 2-dim array of count values, including NaNs
@@ -30,9 +30,11 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
         Py_ssize_t i,j,ii,jj,iii,cursor
         int N = counts.shape[0]
         int K = counts.shape[1]
-        int total_augmented_count, N_missing
+        int N_missing
         double sum_p
-        np.ndarray[int, ndim=1] row_idx_missing, row_counts_missing, col_counts
+        unsigned int total_augmented_count
+        np.ndarray[int, ndim=1] row_idx_missing
+        np.ndarray[double, ndim=1] row_counts_missing, col_counts
         np.ndarray[double, ndim=2] col_idx_missing
         np.ndarray[unsigned int, ndim=1] individual_augmented_counts = np.zeros(K, dtype=np.uint32)
         np.ndarray[double, ndim=1] p = np.array([1./K]*K, dtype=np.float64)
@@ -43,8 +45,8 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
     row_idx_missing = np.arange(N)[np.isnan(counts).any(1)].astype(np.int32)
     N_missing = row_idx_missing.shape[0]
     
-    row_counts_missing = np.nansum(counts,1)[row_idx_missing].astype(np.int32)
-    col_counts = np.nansum(counts,0).astype(np.int32)    
+    row_counts_missing = np.nansum(counts,1)[row_idx_missing]
+    col_counts = np.nansum(counts,0)
     
     # initialize col_idx_missing with NaN and then iterate over rows
     # filling each row from left to right with doubles that correspond
@@ -86,10 +88,8 @@ def sampler(np.ndarray[np.float64_t, ndim=2] counts,
                     cursor += 1
              
             # sample augmented variables to "fill-in" censored data
-            total_augmented_count = -row_counts_missing[ii]
-            for _ in xrange(row_counts_missing[ii]):
-                total_augmented_count += gsl_ran_geometric(r,sum_p)
-            gsl_ran_multinomial(r,cursor,<unsigned int>total_augmented_count,&p_[0],&individual_augmented_counts[0])
+            total_augmented_count = gsl_ran_negative_binomial(r,sum_p,row_counts_missing[ii])
+            gsl_ran_multinomial(r,cursor,total_augmented_count,&p_[0],&individual_augmented_counts[0])
             
             # increment posterior alpha with the augmented counts
             for jj in xrange(K):
