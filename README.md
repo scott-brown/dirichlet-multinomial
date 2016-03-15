@@ -25,3 +25,5 @@ Or we can use a Gibbs sampling approach with augmented variables. We avoid havin
 chain2 = ag.sampler(data,prior,mcmc_samples)
 ```
 Both approaches are implemented in Cython and cross-checked with pure Python implementations.
+
+For more detail, check out test.ipynb in the tests folder.
